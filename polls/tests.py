@@ -58,7 +58,7 @@ class PollViewTests(TestCase):
         """Even if both past and future polls exist, only past polls should be displayed."""
         create_poll(question="Past poll.", days=-30)
         create_poll(question="Future poll.", days=30)
-        response = sefl.client.get(reverse('polls:index'))
+        response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(
             response.context['latest_poll_list'],
             ['<Poll: Past poll.>']
@@ -71,5 +71,19 @@ class PollViewTests(TestCase):
         response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(
             response.context['latest_poll_list'],
-            ['<Poll: Past poll 2.>', <'<Poll: Past poll 1.>'>]
+            ['<Poll: Past poll 2.>', '<Poll: Past poll 1.>']
         )
+
+
+class PollIndexDetailTests(TestCase):
+    def test_detail_view_with_a_future_poll(self):
+        """The detail viewof a poll with a pub_date in the future should return a 404 not found."""
+        future_poll = create_poll(question = 'Future poll.', days=5)
+        response = self.client.get(reverse('polls:detail', args= (future_poll.id,)))
+        self.assertEqual(response.status_code, 404)
+    
+    def test_detail_view_with_a_past_poll(self):
+        """The detail view of a poll with a pub_date in the past should display the poll's question."""
+        past_poll= create_poll(question = 'Past Poll.', days = -5)
+        response = self.client.get(reverse('polls:detail', args=(past_poll.id,)))
+        self.assertContains(response, past_poll.question, status_code=200)
